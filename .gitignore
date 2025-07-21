@@ -1,0 +1,51 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Build and dist directories
+dist/
+build/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Coverage reports (if you add tests)
+coverage/
+
+# MongoDB local data (if running locally)
+data/
+mongod.lock
+
+# Public folder for static assets (if not versioned)
+public/uploads/
+
+# Heap dumps (from your original package.json with heapdump)
+*.heapsnapshot
