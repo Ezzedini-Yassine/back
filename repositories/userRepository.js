@@ -10,6 +10,9 @@ class UserRepository {
     return await user.save();
   }
 
+  async findById(id) {
+    return await User.findById(id);
+  }
   // Add more methods later for other ops
 }
 

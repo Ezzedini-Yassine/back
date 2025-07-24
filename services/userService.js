@@ -1,4 +1,6 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const payloadChecker = require('payload-validator');
 const userRepository = require('../repositories/userRepository');
 
@@ -6,7 +8,6 @@ const saltRounds = 10;
 
 class UserService {
   async registerAdmin(userData) {
-    // Validate payload
     const expectedPayload = {
       username: { type: 'string', required: true },
       email: { type: 'email', required: true },
@@ -17,29 +18,24 @@ class UserService {
       throw new Error(`Validation error: ${JSON.stringify(validation.response.errorMessage)}`);
     }
 
-    // Check if user exists
     const existingUser = await userRepository.findByEmail(userData.email);
     if (existingUser) {
       throw new Error('User already exists');
     }
 
-    // Hash password
     userData.password = await bcrypt.hash(userData.password, saltRounds);
-
-    // Set defaults
     userData.role = 'admin';
-    userData.MailConfirm = false;  // Requires confirmation
+    userData.MailConfirm = false; // Requires confirmation
 
     return await userRepository.create(userData);
   }
 
   async registerUser(userData) {
-    // Validate payload (includes extra fields)
     const expectedPayload = {
       username: { type: 'string', required: true },
       email: { type: 'email', required: true },
       password: { type: 'string', required: true, min: 8 },
-      useractive: { type: 'string', required: true },  // ObjectId as string
+      useractive: { type: 'string', required: true },
       license: { type: 'array', required: true },
     };
     const validation = payloadChecker.validator(userData, expectedPayload, Object.keys(expectedPayload), false);
@@ -47,23 +43,119 @@ class UserService {
       throw new Error(`Validation error: ${JSON.stringify(validation.response.errorMessage)}`);
     }
 
-    // Check if user exists
     const existingUser = await userRepository.findByEmail(userData.email);
     if (existingUser) {
       throw new Error('User already exists');
     }
 
-    // Hash password
     userData.password = await bcrypt.hash(userData.password, saltRounds);
-
-    // Set defaults
     userData.role = 'user';
-    userData.MailConfirm = true;  // Auto-confirmed
+    userData.MailConfirm = false; // Requires email confirmation
 
-    return await userRepository.create(userData);
+    const user = await userRepository.create(userData);
+    await this.sendMailConfirmation(user);
+    return user;
   }
 
-  // Add more methods later (e.g., for email confirmation)
+  async sendMailConfirmation(user) {
+    const token = jwt.sign({ users: user }, process.env.JWT_SECRET || 'secret', { expiresIn: '24h' });
+    const encodedToken = encodeURIComponent(token);
+    const activationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/confirm/${encodedToken}`;
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: { rejectUnauthorized: false },
+    });
+
+    const mailOptions = {
+      from: 'Luxbord',
+      to: user.email,
+      subject: 'Activate your Luxboard Account',
+      text: 'Verify your email!',
+      html: `
+        <style>
+          body {
+              font-family: Arial, sans-serif;
+              background-color: #f2f2f2;
+              margin: 0;
+              padding: 0;
+          }
+          .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #ffffff;
+          }
+          h2 {
+              color: #333;
+          }
+          .logo {
+              width: 150px;
+              height: auto;
+          }
+          .content {
+              margin-top: 20px;
+              color: #555;
+          }
+          .footer {
+              margin-top: 30px;
+              padding-top: 10px;
+              border-top: 1px solid #ddd;
+              text-align: center;
+              color: #777;
+              font-size: 14px;
+          }
+        </style>
+        <div class="container">
+            <h2>Hello,</h2>
+            <img class="logo" src="https://luxboard.treetronix.com/assets/img/logo.png" alt="Luxbord Logo">
+            <div class="content">
+                To activate your Luxboard account, please click on the following link:
+                <a href="${activationLink}">Activate Your Account</a>
+                <p>Once you have activated your account, you will be able to log in and start using Luxboard.</p>
+                <p>If you encounter any issues while activating your account, please don't hesitate to contact us at <a href="mailto:contact@treetronix.com">contact@treetronix.com</a>.</p>
+                <p>We look forward to welcoming you to Luxboard!</p>
+            </div>
+            <div class="footer">
+                <a href="https://treetronix.com/"><p>Treetronix</p></a>
+                <p>Contact: +216 71 111 100</p>
+                <p>Email: <a href="mailto:contact@treetronix.com">contact@treetronix.com</a></p>
+            </div>
+        </div>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw new Error('Failed to send confirmation email');
+    }
+  }
+
+  async confirmEmail(token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      const user = await userRepository.findById(decoded.users._id);
+      if (!user) throw new Error('User not found');
+      if (user.MailConfirm) throw new Error('Email already confirmed');
+
+      user.MailConfirm = true;
+      await user.save();
+      return user;
+    } catch (error) {
+      throw new Error('Invalid or expired token');
+    }
+  }
+
+  async findById(id) {
+    return await userRepository.findById(id);
+  }
 }
 
 module.exports = new UserService();
