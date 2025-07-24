@@ -26,8 +26,11 @@ class UserService {
     userData.password = await bcrypt.hash(userData.password, saltRounds);
     userData.role = 'admin';
     userData.MailConfirm = false; // Requires confirmation
+    userData.useractive = false; // Start inactive until confirmed
 
-    return await userRepository.create(userData);
+    const user = await userRepository.create(userData);
+    await this.sendMailConfirmation(user);
+    return user;
   }
 
   async registerUser(userData) {
@@ -35,7 +38,6 @@ class UserService {
       username: { type: 'string', required: true },
       email: { type: 'email', required: true },
       password: { type: 'string', required: true, min: 8 },
-      useractive: { type: 'string', required: true },
       license: { type: 'array', required: true },
     };
     const validation = payloadChecker.validator(userData, expectedPayload, Object.keys(expectedPayload), false);
@@ -51,6 +53,7 @@ class UserService {
     userData.password = await bcrypt.hash(userData.password, saltRounds);
     userData.role = 'user';
     userData.MailConfirm = false; // Requires email confirmation
+    userData.useractive = false; // Start inactive until confirmed
 
     const user = await userRepository.create(userData);
     await this.sendMailConfirmation(user);
@@ -146,11 +149,42 @@ class UserService {
       if (user.MailConfirm) throw new Error('Email already confirmed');
 
       user.MailConfirm = true;
+      user.useractive = true; // Activate user on confirmation
       await user.save();
       return user;
     } catch (error) {
       throw new Error('Invalid or expired token');
     }
+  }
+
+  async login(credentials) {
+    const expectedPayload = {
+      email: { type: 'email', required: true },
+      password: { type: 'string', required: true },
+    };
+    const validation = payloadChecker.validator(credentials, expectedPayload, Object.keys(expectedPayload), false);
+    if (validation.hasError) {
+      throw new Error(`Validation error: ${JSON.stringify(validation.response.errorMessage)}`);
+    }
+
+    const user = await userRepository.findByEmail(credentials.email);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (!user.MailConfirm) {
+      throw new Error('Email not confirmed');
+    }
+    if (!user.useractive) {
+      throw new Error('User account is inactive');
+    }
+
+    const isMatch = await bcrypt.compare(credentials.password, user.password);
+    if (!isMatch) {
+      throw new Error('Incorrect password');
+    }
+
+    const token = jwt.sign({ user: user.toObject() }, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
+    return token;
   }
 
   async findById(id) {

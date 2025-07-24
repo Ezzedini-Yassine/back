@@ -13,7 +13,9 @@ class UserRepository {
   async findById(id) {
     return await User.findById(id);
   }
-  // Add more methods later for other ops
+  async updateById(id, updates) {
+    return await User.findByIdAndUpdate(id, updates, { new: true });
+  }
 }
 
 module.exports = new UserRepository();

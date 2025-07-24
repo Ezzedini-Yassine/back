@@ -34,6 +34,15 @@ class UserController {
       next(error);
     }
   }
+
+  async login(req, res, next) {
+    try {
+      const token = await userService.login(req.body);
+      res.status(200).json({ token });
+    } catch (error) {
+      next(error);
+    }
+  }
   // Add more controllers later
 }
 

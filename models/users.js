@@ -38,9 +38,8 @@ const usersSchema = new Schema({
     default: [],
   }],
   useractive: {
-    type: Schema.Types.ObjectId,
-    ref: 'users',
-    default: null,
+    type: Boolean,  // Changed to boolean
+    default: false, // Default inactive; set to true on confirmation or admin approval
   },
 });
 
