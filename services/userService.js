@@ -26,7 +26,8 @@ class UserService {
     userData.password = await bcrypt.hash(userData.password, saltRounds);
     userData.role = 'admin';
     userData.MailConfirm = false; // Requires confirmation
-    userData.useractive = false; // Start inactive until confirmed
+    userData.useractive = true; // Admins are active by default
+    userData.AdminConfirmation = true; // Admins are automatically confirmed
 
     const user = await userRepository.create(userData);
     await this.sendMailConfirmation(user);
@@ -53,7 +54,8 @@ class UserService {
     userData.password = await bcrypt.hash(userData.password, saltRounds);
     userData.role = 'user';
     userData.MailConfirm = false; // Requires email confirmation
-    userData.useractive = false; // Start inactive until confirmed
+    userData.useractive = true; // Users are active by default but need email confirmation
+    userData.AdminConfirmation = true; // Users are automatically confirmed by admin 
 
     const user = await userRepository.create(userData);
     await this.sendMailConfirmation(user);
@@ -173,6 +175,9 @@ class UserService {
     }
     if (!user.MailConfirm) {
       throw new Error('Email not confirmed');
+    }
+    if (!user.AdminConfirmation) {
+      throw new Error('Admin confirmation required');
     }
     if (!user.useractive) {
       throw new Error('User account is inactive');
