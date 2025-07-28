@@ -56,6 +56,24 @@ class UserController {
     next(error);
   }
 }
+
+async changePassword(req, res, next) {
+  try {
+    const result = await userService.changePassword(req.user.userId, req.body.currentPassword, req.body.newPassword);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async getMe(req, res, next) {
+  try {
+    const user = await userService.findById(req.user.userId);
+    res.json({ email: user.email }); // Only return email for simplicity
+  } catch (error) {
+    next(error);
+  }
+}
   // Add more controllers later
 }
 

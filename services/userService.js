@@ -8,6 +8,27 @@ const saltRounds = 10;
 
 class UserService {
 
+async changePassword(userId, currentPassword, newPassword) {
+  const expectedPayload = {
+    currentPassword: { type: 'string', required: true, min: 8 },
+    newPassword: { type: 'string', required: true, min: 8 },
+  };
+  const validation = payloadChecker.validator({ currentPassword, newPassword }, expectedPayload, Object.keys(expectedPayload), false);
+  if (validation.hasError) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.response.errorMessage)}`);
+  }
+
+  const user = await userRepository.findById(userId);
+  if (!user) throw new Error('User not found');
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) throw new Error('Incorrect current password');
+
+  user.password = await bcrypt.hash(newPassword, saltRounds);
+  await user.save();
+  return { message: 'Password updated successfully' };
+}
+
   async getUserStats() {
   const User = require('../models/users'); // Direct model access for counts
   const totalUsers = await User.countDocuments();

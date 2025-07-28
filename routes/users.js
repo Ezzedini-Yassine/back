@@ -11,5 +11,7 @@ router.post('/login', userController.login);
 
 // Protected admin route
 router.get('/stats', authMiddleware, userController.getUserStats);
+router.post('/change-password', authMiddleware, userController.changePassword);
+router.get('/me', authMiddleware, userController.getMe);
 
 module.exports = router;
