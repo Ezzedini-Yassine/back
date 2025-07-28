@@ -44,6 +44,18 @@ class UserController {
       next(error);
     }
   }
+
+  async getUserStats(req, res, next) {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only' });
+    }
+    const stats = await userService.getUserStats();
+    res.status(200).json(stats);
+  } catch (error) {
+    next(error);
+  }
+}
   // Add more controllers later
 }
 

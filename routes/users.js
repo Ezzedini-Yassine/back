@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const authMiddleware = require('../middlewares/auth'); // Import middleware
 
 // Signup routes
 router.post('/register', userController.registerAdmin);
@@ -8,6 +9,7 @@ router.post('/registeruser', userController.registerUser);
 router.get('/confirm/:token', userController.confirmEmail);
 router.post('/login', userController.login);
 
-// Add more routes later (e.g., login)
+// Protected admin route
+router.get('/stats', authMiddleware, userController.getUserStats);
 
 module.exports = router;

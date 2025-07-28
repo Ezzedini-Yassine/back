@@ -8,6 +8,14 @@ const saltRounds = 10;
 
 class UserService {
 
+  async getUserStats() {
+  const User = require('../models/users'); // Direct model access for counts
+  const totalUsers = await User.countDocuments();
+  const confirmedUsers = await User.countDocuments({ MailConfirm: true });
+  const activeUsers = await User.countDocuments({ useractive: true });
+  return { totalUsers, confirmedUsers, activeUsers };
+}
+
   generateAccessToken(user) {
     return jwt.sign({ userId: user._id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.TOKEN_EXPIRY || '15m' });
   }
