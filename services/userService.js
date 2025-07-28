@@ -65,7 +65,7 @@ class UserService {
   async sendMailConfirmation(user) {
     const token = jwt.sign({ users: user }, process.env.JWT_SECRET || 'secret', { expiresIn: '24h' });
     const encodedToken = encodeURIComponent(token);
-    const activationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/confirm/${encodedToken}`;
+    const activationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/confirm/${encodedToken}`;
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -139,25 +139,27 @@ class UserService {
     try {
       await transporter.sendMail(mailOptions);
     } catch (error) {
+      console.log(error);
       throw new Error('Failed to send confirmation email');
     }
   }
 
   async confirmEmail(token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-      const user = await userRepository.findById(decoded.users._id);
-      if (!user) throw new Error('User not found');
-      if (user.MailConfirm) throw new Error('Email already confirmed');
-
-      user.MailConfirm = true;
-      user.useractive = true; // Activate user on confirmation
-      await user.save();
-      return user;
-    } catch (error) {
-      throw new Error('Invalid or expired token');
-    }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+  } catch (error) {
+    throw new Error('Invalid or expired token');
   }
+
+  const user = await userRepository.findById(decoded.users._id);
+  if (!user) throw new Error('User not found');
+  if (user.MailConfirm) throw new Error('Email already confirmed');
+
+  user.MailConfirm = true;
+  await user.save();
+  return user;
+}
 
   async login(credentials) {
     const expectedPayload = {
