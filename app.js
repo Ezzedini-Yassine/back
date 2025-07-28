@@ -9,6 +9,8 @@ var cors = require('cors');
 var usersRouter = require('./routes/users');
 const authMiddleware = require('./middlewares/auth'); // Import auth middleware
 var app = express();
+var sitesRouter = require('./routes/sites');
+
 
 // view engine setup (optional, can remove if not using Pug for signup)
 app.set('views', path.join(__dirname, 'views'));
@@ -31,7 +33,7 @@ app.use(function(req, res, next) {
 });
 
 app.use('/api/users', usersRouter);
-
+app.use('/api/sites', sitesRouter);
 // Example protected route (add your actual protected routes here)
 app.use('/api/protected', authMiddleware, (req, res) => {
   res.json({ message: 'Protected content', user: req.user });
