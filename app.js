@@ -7,6 +7,7 @@ require('./config/database');
 const payloadChecker = require('payload-validator');
 var cors = require('cors');
 var usersRouter = require('./routes/users');
+const authMiddleware = require('./middlewares/auth'); // Import auth middleware
 var app = express();
 
 // view engine setup (optional, can remove if not using Pug for signup)
@@ -18,17 +19,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors());
+app.use(cors({ credentials: true, origin: true })); // Enable credentials for CORS (cookies)
 
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, New-Access-Token");
   res.header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Credentials", "true"); // Allow credentials (cookies)
 
   next();
 });
 
 app.use('/api/users', usersRouter);
+
+// Example protected route (add your actual protected routes here)
+app.use('/api/protected', authMiddleware, (req, res) => {
+  res.json({ message: 'Protected content', user: req.user });
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

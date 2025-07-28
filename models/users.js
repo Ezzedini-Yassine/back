@@ -41,6 +41,7 @@ const usersSchema = new Schema({
     type: Boolean,  // Changed to boolean
     default: false, // Default inactive; set to true on confirmation or admin approval
   },
+refreshTokens: [{ type: String, expires: '7d' }], // Auto-expire old tokens
 });
 
 module.exports = mongoose.model('users', usersSchema);

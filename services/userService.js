@@ -7,6 +7,15 @@ const userRepository = require('../repositories/userRepository');
 const saltRounds = 10;
 
 class UserService {
+
+  generateAccessToken(user) {
+    return jwt.sign({ userId: user._id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.TOKEN_EXPIRY || '15m' });
+  }
+
+  generateRefreshToken(user) {
+    return jwt.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_EXPIRY || '7d' });
+  }
+
   async registerAdmin(userData) {
     const expectedPayload = {
       username: { type: 'string', required: true },
@@ -190,8 +199,35 @@ class UserService {
       throw new Error('Incorrect password');
     }
 
-    const token = jwt.sign({ user: user.toObject() }, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
-    return token;
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+
+    // Save refresh token to user
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+
+    return { accessToken, refreshToken };
+  }
+
+  async refreshToken(refreshToken, userId) {
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+      if (decoded.userId.toString() !== userId.toString()) throw new Error('Invalid refresh token');
+
+      const user = await userRepository.findById(userId);
+      if (!user || !user.refreshTokens.includes(refreshToken)) throw new Error('Invalid refresh token');
+
+      // Rotate refresh token
+      user.refreshTokens = user.refreshTokens.filter(t => t !== refreshToken);
+      const newRefreshToken = this.generateRefreshToken(user);
+      user.refreshTokens.push(newRefreshToken);
+      await user.save();
+
+      const newAccessToken = this.generateAccessToken(user);
+      return { newAccessToken, newRefreshToken };
+    } catch (err) {
+      throw new Error('Invalid or expired refresh token');
+    }
   }
 
   async findById(id) {
