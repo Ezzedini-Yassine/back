@@ -8,6 +8,53 @@ const saltRounds = 10;
 
 class UserService {
 
+async createUserByAdmin(userData) {
+  const expectedPayload = {
+    username: { type: 'string', required: true },
+    email: { type: 'email', required: true },
+    password: { type: 'string', required: true, min: 8 },
+  };
+  const validation = payloadChecker.validator(userData, expectedPayload, Object.keys(expectedPayload), false);
+  if (validation.hasError) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.response.errorMessage)}`);
+  }
+
+  const existingUser = await userRepository.findByEmail(userData.email);
+  if (existingUser) {
+    throw new Error('User already exists');
+  }
+
+  userData.password = await bcrypt.hash(userData.password, saltRounds);
+  userData.role = 'user';
+  userData.MailConfirm = true;
+  userData.AdminConfirmation = true;
+  userData.useractive = true;
+  userData.license = []; // Empty as default
+
+  const user = await userRepository.create(userData);
+  return user;
+}
+
+  async getAllUsers() {
+  const User = require('../models/users'); // Direct model for query
+  return await User.find({}, 'username email Date_Creation MailConfirm AdminConfirmation useractive role'); // Select relevant fields
+}
+
+async updateUserFields(userId, updates) {
+  const allowedFields = ['MailConfirm', 'AdminConfirmation', 'useractive'];
+  const filteredUpdates = {};
+  for (const key in updates) {
+    if (allowedFields.includes(key)) {
+      filteredUpdates[key] = updates[key];
+    }
+  }
+  if (Object.keys(filteredUpdates).length === 0) throw new Error('No valid fields to update');
+
+  const user = await userRepository.updateById(userId, filteredUpdates);
+  if (!user) throw new Error('User not found');
+  return user;
+}
+
 async changePassword(userId, currentPassword, newPassword) {
   const expectedPayload = {
     currentPassword: { type: 'string', required: true, min: 8 },

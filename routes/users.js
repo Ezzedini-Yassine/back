@@ -13,5 +13,8 @@ router.post('/login', userController.login);
 router.get('/stats', authMiddleware, userController.getUserStats);
 router.post('/change-password', authMiddleware, userController.changePassword);
 router.get('/me', authMiddleware, userController.getMe);
+router.get('/all', authMiddleware, userController.getAllUsers);
+router.put('/update/:id', authMiddleware, userController.updateUserFields);
+router.post('/create-user', authMiddleware, userController.createUserByAdmin);
 
 module.exports = router;

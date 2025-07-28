@@ -74,6 +74,42 @@ async getMe(req, res, next) {
     next(error);
   }
 }
+
+async getAllUsers(req, res, next) {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only' });
+    }
+    const users = await userService.getAllUsers();
+    res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async updateUserFields(req, res, next) {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only' });
+    }
+    const user = await userService.updateUserFields(req.params.id, req.body);
+    res.status(200).json({ message: 'User updated successfully', user });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async createUserByAdmin(req, res, next) {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only' });
+    }
+    const user = await userService.createUserByAdmin(req.body);
+    res.status(201).json({ message: 'User created successfully', user });
+  } catch (error) {
+    next(error);
+  }
+}
   // Add more controllers later
 }
 
