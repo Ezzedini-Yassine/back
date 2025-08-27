@@ -14,7 +14,7 @@ const deviceSchema = new Schema({
   UserId: { type: Schema.Types.ObjectId, ref: 'users' },
   SiteId: { type: Schema.Types.ObjectId, ref: 'sites' },
   LineId: { type: Schema.Types.ObjectId, ref: 'lines' },
-  Profil: { type: Schema.Types.ObjectId, ref: 'DimmingProfile' },
+  Profil: { type: Schema.Types.ObjectId, ref: 'dimmingprofiles' },
   AjusterDeviceId: { type: Schema.Types.ObjectId, ref: 'AjusterDevice' },
   SupprimerDeviceId: { type: Schema.Types.ObjectId, ref: 'SupprimerDevice' },
   ModifierDeviceId: { type: Schema.Types.ObjectId, ref: 'ModifierDevice' },
