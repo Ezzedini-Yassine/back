@@ -10,6 +10,7 @@ const sitesSchema = new Schema({
   },
   assignedUser: { type: Schema.Types.ObjectId, ref: 'users' },
   createdAt: { type: Date, default: Date.now },
+  Profil: { type: Schema.Types.ObjectId, ref: 'DimmingProfile' },
 });
 
 module.exports = mongoose.model('sites', sitesSchema);

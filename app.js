@@ -7,10 +7,10 @@ require('./config/database');
 const payloadChecker = require('payload-validator');
 var cors = require('cors');
 var usersRouter = require('./routes/users');
-const authMiddleware = require('./middlewares/auth'); // Import auth middleware
-var app = express();
+const authMiddleware = require('./middlewares/auth');
 var sitesRouter = require('./routes/sites');
-
+var dimmingRouter = require('./routes/dimming');
+var app = express();
 
 // view engine setup (optional, can remove if not using Pug for signup)
 app.set('views', path.join(__dirname, 'views'));
@@ -21,7 +21,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors({ credentials: true, origin: true })); // Enable credentials for CORS (cookies)
+
+// Updated CORS configuration
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., same-origin or localhost)
+    if (!origin || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies (refresh token)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'New-Access-Token'],
+};
+
+app.use(cors(corsOptions));
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -29,15 +45,15 @@ app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Credentials", "true"); // Allow credentials (cookies)
 
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   next();
 });
 
 app.use('/api/users', usersRouter);
 app.use('/api/sites', sitesRouter);
-// Example protected route (add your actual protected routes here)
-app.use('/api/protected', authMiddleware, (req, res) => {
-  res.json({ message: 'Protected content', user: req.user });
-});
+app.use('/api/dimming', dimmingRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -46,18 +62,15 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page (updated to JSON for API consistency)
   res.status(err.status || 500).json({
     message: err.message,
     error: process.env.NODE_ENV === 'development' ? err : {},
   });
 });
 
-// Start the server on specified port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
